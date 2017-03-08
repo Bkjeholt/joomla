@@ -14,10 +14,19 @@
 version: '2.1'
 
 services:
-  mysql:
+  hicdb:
     image: mysql:5.7
     volumes:
-      - mysql_data:/var/lib/mysql
+      - hicdb_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: db
+
+  joomladb:
+    image: mysql:5.7
+    volumes:
+      - joomladb_data:/var/lib/mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -26,13 +35,23 @@ services:
   phpmyadmin:
     image: bkjeholt/phpmyadmin:latest-x86
     depends_on:
-      - mysql
+      - hicdb
     restart: always
     links: 
-      - mysql:db
+      - hicdb:db
     ports: 
       - "${PMA_PORT_NO}:80"
 
+  joomla:
+    image: joomla:latest
+    ports:
+      - "9111:80"
+    depends_on:
+      - joomladb
+      restart: always
+    environment:
+      JOOMLA_DB_HOST: joomladb
+      
   manager:
     image: bkjeholt/mqtt-manager:dev-x86
     depends_on:
@@ -54,20 +73,22 @@ services:
   ftp-backup:
     image: bkjeholt/mysql-backup-ftp:latest-x86
     depends_on:
-      - mysql
+      - hicdb
     restart: always
     links:
-      - mysql:mysql
+      - hicdb:mysql
     environment:
       FTP_HOST_ADDR: ${FTP_HOST}
       FTP_USER_NAME: ${FTP_USER}
       FTP_PASSWORD: ${FTP_PASSWORD}
       FTP_BACKUP_BASE_DIR: ${FTP_BACKUP_BASE_DIR}
       MYSQL_BACKUP_INTERVALL: ${FTP_BACKUP_INTERVALL}
-      MYSQL_PORT_3306_TCP_ADDR: mysql
+      MYSQL_PORT_3306_TCP_ADDR: hicdb
       MYSQL_PORT_3306_TCP_PORT: 3306
       MYSQL_ENV_MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_ENV_MYSQL_DATABASE: db
       
 volumes:
-  mysql_data: 
+  hicdb_data: 
+  joomladb_data:
+  joomla_data:
